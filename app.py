@@ -177,7 +177,7 @@ def respond(message, image, dialogs, current_dialog):
 def start_new_dialog(dialogs):
     name = f"Диалог {len(dialogs) + 1}"
     dialogs[name] = []
-    return gr.Dropdown.update(choices=list(dialogs.keys()), value=name), dialogs, []
+    return gr.update(choices=list(dialogs.keys()), value=name), dialogs, []
 
 
 def select_dialog(name, dialogs):
@@ -235,7 +235,7 @@ def do_login(username, password, user_state, dialogs_state):
             username,
             dialogs_state,
             [],
-            gr.Dropdown.update(choices=["Диалог 1"], value="Диалог 1"),
+            gr.update(choices=["Диалог 1"], value="Диалог 1"),
         )
     else:
         return (
@@ -244,7 +244,7 @@ def do_login(username, password, user_state, dialogs_state):
             user_state,
             dialogs_state,
             [],
-            gr.Dropdown.update(),
+            gr.update(),
         )
 
 
@@ -255,7 +255,7 @@ def do_logout():
         None,
         {"Диалог 1": []},
         [],
-        gr.Dropdown.update(choices=["Диалог 1"], value="Диалог 1"),
+        gr.update(choices=["Диалог 1"], value="Диалог 1"),
     )
 
 
