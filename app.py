@@ -2,6 +2,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 import base64
+import json
 import requests
 import gradio as gr
 import numpy as np
@@ -58,7 +59,7 @@ def retrieve_context(query, top_n=3):
     selected = [doc_chunks[i] for i in idx if sims[i] > 0]
     return "\n".join(selected)
 
-def chat_with_lmstudio(text, image_path=None, history=None, context=""):
+def chat_with_lmstudio(text, image_path=None, history=None, context="", stream=False):
     messages = []
     if SYSTEM_PROMPT:
         messages.append({"role": "system", "content": SYSTEM_PROMPT})
@@ -83,8 +84,29 @@ def chat_with_lmstudio(text, image_path=None, history=None, context=""):
     payload = {
         "model": MODEL,
         "messages": messages,
+        **({"stream": True} if stream else {})
     }
     headers = {"Authorization": f"Bearer {API_KEY}"}
+
+    if stream:
+        resp = requests.post(CHAT_ENDPOINT, json=payload, headers=headers, stream=True, timeout=90)
+        resp.raise_for_status()
+        for line in resp.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            if line.strip().startswith("data:"):
+                data_str = line.split("data:", 1)[1].strip()
+                if data_str == "[DONE]":
+                    break
+                try:
+                    data = json.loads(data_str)
+                except Exception:
+                    continue
+                token = data.get("choices", [{}])[0].get("delta", {}).get("content")
+                if token:
+                    yield token
+        return
+
     resp = requests.post(CHAT_ENDPOINT, json=payload, headers=headers, timeout=90)
     resp.raise_for_status()
     data = resp.json()
@@ -94,10 +116,14 @@ def chat_with_lmstudio(text, image_path=None, history=None, context=""):
 def respond(message, image, dialogs, current_dialog):
     history = dialogs.get(current_dialog, [])
     context = retrieve_context(message)
-    reply = chat_with_lmstudio(message, image, history, context)
+    tokens = []
+    for token in chat_with_lmstudio(message, image, history, context, stream=True):
+        tokens.append(token)
+        yield history + [(message, "".join(tokens))], "", None, dialogs
+    reply = "".join(tokens)
     history.append((message, reply))
     dialogs[current_dialog] = history
-    return history, "", None, dialogs
+    yield history, "", None, dialogs
 
 
 def start_new_dialog(dialogs):
@@ -131,4 +157,5 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     dialog_select.change(select_dialog, [dialog_select, dialogs_state], chatbot)
     send.click(respond, [txt, img, dialogs_state, dialog_select], [chatbot, txt, img, dialogs_state])
 
+    demo.queue()
     demo.launch(server_name="0.0.0.0", server_port=7860)
