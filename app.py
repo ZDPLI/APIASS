@@ -284,8 +284,8 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     with register_box:
         gr.Markdown("## Регистрация")
         register_msg = gr.Markdown("")
-        register_user = gr.Textbox(label="Имя")
-        register_pass = gr.Textbox(type="password", label="Пароль")
+        register_user_tb = gr.Textbox(label="Имя")
+        register_pass_tb = gr.Textbox(type="password", label="Пароль")
         with gr.Row():
             register_submit = gr.Button("Создать аккаунт")
             register_back = gr.Button("Назад")
@@ -311,7 +311,7 @@ with gr.Blocks(theme=gr.themes.Soft()) as demo:
     login_back.click(lambda: show_landing(), None, [landing_box, login_box, register_box, chat_box])
     register_back.click(lambda: show_landing(), None, [landing_box, login_box, register_box, chat_box])
 
-    register_submit.click(do_register, [register_user, register_pass], register_msg)
+    register_submit.click(do_register, [register_user_tb, register_pass_tb], register_msg)
     login_submit.click(
         do_login,
         [login_user, login_pass, user_state, dialogs_state],
